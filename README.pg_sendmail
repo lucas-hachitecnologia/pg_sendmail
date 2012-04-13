@@ -1,0 +1,151 @@
+INFORMACOES DE LICENCA E COPYRIGHT
+LICENSE AND COPYRIGHT INFORMATION
+----------------------------------
+/*
+ * Copyright (c) 2011, Lucas M. de Freitas <lucas@lucasfreitas.eti.br>
+ * All rights reserved.
+ *
+ * Funcao em linguagem C para envio de e-mail no Postgres.
+ * 
+ * Este programa foi desenvolvido com o intuito de enviar 
+ * e-mail atraves da chamada de uma funcao no Postgres.
+ * Os metodos para envio de e-mail atraves do servidor SMTP 
+ * foram originalmente desenvolvidos por Mayukh Bose 
+ * <http://www.mayukhbose.com> e posteriormente modificados 
+ * por Lucas M. de Freitas <http://www.lucasfreitas.eti.br> 
+ * para suportar o envio de e-mail em HTML e integracao com 
+ * chamada de funcao no Postgres.
+ * Este codigo pode ser utilizado e modificado para qualquer 
+ * fim, desde que se mantenha os direitos autorais, incluindo 
+ * os nomes de seus devidos autores.
+ * Para entender como este script funciona basta ler o arquivo
+ * README.pg_sendmail distribuido junto com este codigo.
+ *
+ * C-language function for sending email in Postgres.
+ *
+ * This program was developed in order to send
+ * e-mail through the invocation of a function in Postgres.
+ * The methods for sending email through SMTP server
+ * were originally developed by Bose Mayukh
+ * <http://www.mayukhbose.com> and later modified
+ * by Lucas M. Freitas <http://www.lucasfreitas.eti.br>
+ * support for sending email in HTML and integration with
+ * function call in Postgres.
+ * This code can be used and modified for any
+ * Finally, since it keeps the copyright, including
+ * the names of their rightful authors.
+ * To understand how this script works just read the file
+ * README.pg_send_mail distributed with this code.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. Neither the names of Lucas M. de Freitas and Mayukh Bose nor the names 
+ *	  of its contributors may be used to endorse or promote products derived 
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ``AS IS''
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ *
+ */
+/* 2003-11-17 - Reply-To Mod added by Chris Lacy-Hulbert */
+/* 2003-12-26 - Added snprintf fix for WIN32. Thanks Wingman! */
+/* 2004-09-09 - Changed the header/body of message to RFC 822 format (section 3.1)
+                Thanks to Luke T. Gilbert (Luke.Gilbert@Nav-international.com) for
+                the suggestion. */
+/* 2011-06-12 - Added support for sending HTML email using 
+                Content-Type: text / html by Lucas M. de Freitas <lucas@lucasfreitas.eti.br> */
+/* 2011-06-12 - Added support for integration with function call in 
+                Postgres by Lucas M. de Freitas <lucas@lucasfreitas.eti.br>. */
+
+
+CONTATANDO OS AUTORES
+CONTACTING THE AUTHOR
+----------------------
+LUCAS M. DE FREITAS <lucas@lucasfreitas.eti.br> - http://www.lucasfreitas.eti.br
+Mayukh Bose <mayukh_bose@hotmail.com> - http://www.mayukhbose.com
+
+
+TRANSLATING
+----------------------
+To use the English language, just uncomment the commented code snippets in 
+English and comment the code into Portuguese.
+
+
+PLATAFORMAS SUPORTADAS
+SUPPORTED PLATFORMS
+---------
+The code is known to work on the following platforms:
+(a) Windows 2000 Professional with Visual C++ 6.0
+(b) Windows 2000 Professional with Visual C++ .NET 2003 
+(c) RedHat Linux 9.0 (kernel 2.4.20-smp) with gcc version 3.2.2
+(d) FreeBSD 4.9 with gcc version 2.95.3
+(e) OpenBSD 3.4 with gcc version 2.95.3 (propolice extensions)
+(f) NetBSD 1.6.1 with gcc version 2.95.3
+
+
+ASSUMPTIONS
+-----------
+The message must follow RFC 821 specifications. In particular, the message
+should not have any line with just a . as the first character and nothing else.
+Also, the lines should not be longer than the length specified in RFC 821, The
+code does NOT check to see if the message follows these parameters, so it is up
+to you to format the message properly, before calling the send_mail() function.
+
+
+INSTALACAO
+INSTALL
+-----------
+Copie o diretorio "pg_sendmail" contendo o codigo do programa para dentro do diretorio
+"contrib" da instalacao do PostgreSQL. O diretorio devera seguir a estrutura abaixo:
+Copy the directory "pg_sendmail" containing the program code into the directory "contrib" 
+the installation of PostgreSQL. The directory should follow the outline below:
+
+	|_ postgresql-x.x.x
+	   |_ contrib
+	      |_ pg_sendmail
+	         |_ Makefile
+	         |_ sendmail.c
+	         |_ smtp.h
+	         |_ README.pg_sendmail
+
+Apos criar a estrutura, basta ir no diretorio "pg_sendmail" e executar o comando:
+After creating the structure, go to the directory "pg_sendmail" and run the command
+	make && make install
+
+Conecte no banco de dados que deseja utilizar a funcao, no Postgres, e execute a instrucao SQL abaixo:
+Connect to the database you want to use the function in Postgres, SQL and follow the instruction below:
+
+	LOAD 'sendmail';
+
+	CREATE OR REPLACE FUNCTION sendmail(TEXT, TEXT, TEXT, TEXT, TEXT, TEXT)
+	RETURNS boolean AS
+	'$libdir/sendmail', 'sendmail'
+ 	 LANGUAGE 'c' VOLATILE SECURITY DEFINER;
+	ALTER FUNCTION sendmail(TEXT, TEXT, TEXT, TEXT, TEXT, TEXT) OWNER TO postgres;
+	
+UTILIZACAO
+USING
+-----------
+Para utiliar a funcao, utilize a sintaxe conforme abaixo:
+	select sendmail('ip do servidor de email', 'email de origem', 'email de destino', 'email de resposta', 'assunto do email', 'mensagem do email');
+
+Utilies for the function, use the syntax as below:
+	select sendmail ('ip of the mail server', 'email source', 'mail destination', 'email response', 'email subject', 'email message');
+
+
+=]
